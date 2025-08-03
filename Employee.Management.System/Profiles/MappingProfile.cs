@@ -14,6 +14,12 @@ namespace Employee.Management.System.Profiles
              .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.ID));
 
 
-         }
+            CreateMap<DepartmentDto, Department>()
+
+            .ReverseMap()
+             .ForMember(dest => dest.DepartmentId, opt => opt.MapFrom(src => src.ID));
+
+
+        }
     }
 }
