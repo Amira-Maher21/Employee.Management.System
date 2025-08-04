@@ -19,6 +19,11 @@ namespace Employee.Management.System.Profiles
             .ReverseMap()
              .ForMember(dest => dest.DepartmentId, opt => opt.MapFrom(src => src.ID));
 
+            CreateMap<LogHistoryDto, LogHistory>()
+
+            .ReverseMap()
+             .ForMember(dest => dest.LogHistoryId, opt => opt.MapFrom(src => src.ID));
+
 
         }
     }

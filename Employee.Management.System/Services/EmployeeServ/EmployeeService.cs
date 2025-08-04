@@ -2,9 +2,12 @@
 using Employee.Management.System.Data;
 using Employee.Management.System.DTOS;
 using Employee.Management.System.Exceptions;
+using Employee.Management.System.mediator;
 using Employee.Management.System.Models;
 using Employee.Management.System.Repositories;
+using Employee.Management.System.Services.DepartmentServ;
 using Employee.Management.System.ViewModels;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Employee.Management.System.Services.EmployeeServ
@@ -16,11 +19,18 @@ namespace Employee.Management.System.Services.EmployeeServ
     {
         private readonly IRepository<Employe> _employeeRepository;
         private readonly IMapper _mapper;
+        private readonly IMediator _mediator;
+        private readonly IDepartmentService _departmentService;
 
-        public EmployeeService(IRepository<Employe> employeeRepository, IMapper mapper)
+
+        public EmployeeService(IRepository<Employe> employeeRepository,
+            IMapper mapper, IDepartmentService departmentService, IMediator mediator)
+
         {
             _employeeRepository = employeeRepository;
             _mapper = mapper;
+            _departmentService = departmentService;
+            _mediator = mediator;
         }
 
         public async Task<ResultViewModel<List<EmployeeDto>>> GetAllAsync(
@@ -81,6 +91,8 @@ namespace Employee.Management.System.Services.EmployeeServ
             _employeeRepository.Add(emp);
             _employeeRepository.SaveChanges();
 
+            await _mediator.Send(new LogEmployeeActionCommand("Create", emp.ID, emp.Name));
+
             return ResultViewModel<EmployeeDto>.Sucess(_mapper.Map<EmployeeDto>(emp), "Employee created successfully");
         }
 
@@ -94,6 +106,8 @@ namespace Employee.Management.System.Services.EmployeeServ
             _employeeRepository.Update(emp);
             _employeeRepository.SaveChanges();
 
+            await _mediator.Send(new LogEmployeeActionCommand("Update", emp.ID, emp.Name));
+
             return ResultViewModel<EmployeeDto>.Sucess(_mapper.Map<EmployeeDto>(emp), "Employee updated successfully");
         }
 
@@ -106,6 +120,8 @@ namespace Employee.Management.System.Services.EmployeeServ
 
             _employeeRepository.Delete(emp);
             _employeeRepository.SaveChanges();
+
+            await _mediator.Send(new LogEmployeeActionCommand("Delete", emp.ID, emp.Name));
 
             return ResultViewModel<bool>.Sucess(true, "Employee deleted successfully");
         }
