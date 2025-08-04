@@ -5,6 +5,7 @@ using Employee.Management.System.Repositories;
 using Employee.Management.System.Services.DepartmentServ;
 using Employee.Management.System.Services.EmployeeServ;
 using Employee.Management.System.Services.LogHistoryServ;
+using Employee.Management.System.UnitOfWork;
 using MediatR;
 using System.Reflection;
 
@@ -16,11 +17,14 @@ namespace Employee.Management.System
         protected override void Load(ContainerBuilder builder)
         {
             builder.RegisterGeneric(typeof(Repository<>)).As(typeof(IRepository<>)).InstancePerLifetimeScope();
+            builder.RegisterType<UnitOfWork.UnitOfWork>().As<IUnitOfWork>().InstancePerLifetimeScope();
             builder.RegisterType<StoreContext>().InstancePerLifetimeScope();
+
             builder.RegisterAssemblyTypes(typeof(IEmployeeService).Assembly).AsImplementedInterfaces().InstancePerLifetimeScope();
             builder.RegisterAssemblyTypes(typeof(IDepartmentService).Assembly).AsImplementedInterfaces().InstancePerLifetimeScope();
             builder.RegisterAssemblyTypes(typeof(ILogHistoryService).Assembly).AsImplementedInterfaces().InstancePerLifetimeScope();
-            // ✅ Add MediatR registrations
+
+            // MediatR
             builder.RegisterAssemblyTypes(typeof(IMediator).GetTypeInfo().Assembly)
                    .AsImplementedInterfaces();
 
@@ -30,14 +34,14 @@ namespace Employee.Management.System
                 return t => c.Resolve(t);
             });
 
-            builder.RegisterAssemblyTypes(ThisAssembly)
+            builder.RegisterAssemblyTypes(typeof(LogEmployeeActionHandler).Assembly)
                    .AsClosedTypesOf(typeof(IRequestHandler<,>))
                    .AsImplementedInterfaces();
 
-            // Optional: Register other handler types
-            builder.RegisterAssemblyTypes(ThisAssembly)
+            builder.RegisterAssemblyTypes(typeof(LogEmployeeActionHandler).Assembly)
                    .AsClosedTypesOf(typeof(INotificationHandler<>))
                    .AsImplementedInterfaces();
+
         }
     }
 

@@ -1,48 +1,45 @@
 ﻿using AutoMapper;
-using Employee.Management.System.Data;
 using Employee.Management.System.DTOS;
 using Employee.Management.System.Exceptions;
 using Employee.Management.System.mediator;
 using Employee.Management.System.Models;
-using Employee.Management.System.Repositories;
+using Employee.Management.System.Paginated;
 using Employee.Management.System.Services.DepartmentServ;
+using Employee.Management.System.UnitOfWork;
 using Employee.Management.System.ViewModels;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Employee.Management.System.Services.EmployeeServ
 {
-
-
-
     public class EmployeeService : IEmployeeService
     {
-        private readonly IRepository<Employe> _employeeRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
         private readonly IDepartmentService _departmentService;
 
-
-        public EmployeeService(IRepository<Employe> employeeRepository,
-            IMapper mapper, IDepartmentService departmentService, IMediator mediator)
-
+        public EmployeeService(IUnitOfWork unitOfWork,
+                               IMapper mapper,
+                               IDepartmentService departmentService,
+                               IMediator mediator)
         {
-            _employeeRepository = employeeRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _departmentService = departmentService;
             _mediator = mediator;
         }
 
         public async Task<ResultViewModel<List<EmployeeDto>>> GetAllAsync(
-      string? name = null,
-      int? departmentId = null,
-      string? status = null,
-      DateTime? hireDateFrom = null,
-      DateTime? hireDateTo = null,
-      string? sortBy = null,
-      bool isAscending = true)
+            string? name = null,
+            int? departmentId = null,
+            string? status = null,
+            DateTime? hireDateFrom = null,
+            DateTime? hireDateTo = null,
+            string? sortBy = null,
+            bool isAscending = true)
         {
-            var query = _employeeRepository.GetAll();
+            var query = _unitOfWork.Employees.GetAll();
 
             if (!string.IsNullOrEmpty(name))
                 query = query.Where(e => e.Name.Contains(name));
@@ -66,18 +63,15 @@ namespace Employee.Management.System.Services.EmployeeServ
                 _ => query
             };
 
-            // Department include is needed, but since IRepository doesn’t support Include,
-            // you can either enhance IRepository or project manually if needed.
-
             var result = await query.ToListAsync();
-
             var dtoList = _mapper.Map<List<EmployeeDto>>(result);
+
             return ResultViewModel<List<EmployeeDto>>.Sucess(dtoList, "Employees fetched successfully");
         }
 
         public async Task<ResultViewModel<EmployeeDto>> GetByIdAsync(int id)
         {
-            var emp = await Task.FromResult(_employeeRepository.GetByID(id));
+            var emp = await Task.FromResult(_unitOfWork.Employees.GetByID(id));
             if (emp == null)
                 return ResultViewModel<EmployeeDto>.Faliure(ErrorCode.NotFound, "Employee not found");
 
@@ -88,8 +82,8 @@ namespace Employee.Management.System.Services.EmployeeServ
         {
             var emp = _mapper.Map<Employe>(dto);
 
-            _employeeRepository.Add(emp);
-            _employeeRepository.SaveChanges();
+            _unitOfWork.Employees.Add(emp);
+            _unitOfWork.SaveChanges();
 
             await _mediator.Send(new LogEmployeeActionCommand("Create", emp.ID, emp.Name));
 
@@ -98,39 +92,52 @@ namespace Employee.Management.System.Services.EmployeeServ
 
         public async Task<ResultViewModel<EmployeeDto>> UpdateAsync(EmployeeDto dto)
         {
-            var emp = _employeeRepository.GetWithTrackinByID(dto.EmployeeId);
+            var emp = _unitOfWork.Employees.GetWithTrackinByID(dto.EmployeeId);
             if (emp == null)
                 return ResultViewModel<EmployeeDto>.Faliure(ErrorCode.NotFound, "Employee not found");
 
             _mapper.Map(dto, emp);
-            _employeeRepository.Update(emp);
-            _employeeRepository.SaveChanges();
+            _unitOfWork.Employees.Update(emp);
+            _unitOfWork.SaveChanges();
 
             await _mediator.Send(new LogEmployeeActionCommand("Update", emp.ID, emp.Name));
 
             return ResultViewModel<EmployeeDto>.Sucess(_mapper.Map<EmployeeDto>(emp), "Employee updated successfully");
         }
 
-
         public async Task<ResultViewModel<bool>> DeleteAsync(int id)
         {
-            var emp = _employeeRepository.GetByID(id);
+            var emp = _unitOfWork.Employees.GetByID(id);
             if (emp == null)
                 return ResultViewModel<bool>.Faliure(ErrorCode.NotFound, "Employee not found");
 
-            _employeeRepository.Delete(emp);
-            _employeeRepository.SaveChanges();
+            _unitOfWork.Employees.Delete(emp);
+            _unitOfWork.SaveChanges();
 
             await _mediator.Send(new LogEmployeeActionCommand("Delete", emp.ID, emp.Name));
 
             return ResultViewModel<bool>.Sucess(true, "Employee deleted successfully");
         }
 
+        public async Task<PaginatedResult<EmployeeDto>> GetEmployeesPaginatedAsync(int pageNumber, int pageSize)
+        {
+            var query = _unitOfWork.Employees.GetAll();
 
+            var totalCount = await query.CountAsync();
+            var employees = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
+            var result = new PaginatedResult<EmployeeDto>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Data = _mapper.Map<List<EmployeeDto>>(employees)
+            };
 
+            return result;
+        }
     }
-
-
-
 }

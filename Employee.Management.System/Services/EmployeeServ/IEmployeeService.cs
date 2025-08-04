@@ -1,4 +1,5 @@
 ﻿using Employee.Management.System.DTOS;
+using Employee.Management.System.Paginated;
 using Employee.Management.System.ViewModels;
 
 namespace Employee.Management.System.Services.EmployeeServ
@@ -10,5 +11,7 @@ namespace Employee.Management.System.Services.EmployeeServ
         Task<ResultViewModel<EmployeeDto>> CreateAsync(EmployeeDto dto);
         Task<ResultViewModel<EmployeeDto>> UpdateAsync(EmployeeDto dto);
         Task<ResultViewModel<bool>> DeleteAsync(int id);
+        Task<PaginatedResult<EmployeeDto>> GetEmployeesPaginatedAsync(int pageNumber, int pageSize);
+
     }
 }

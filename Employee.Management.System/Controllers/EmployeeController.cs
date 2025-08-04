@@ -59,5 +59,13 @@ namespace Employee.Management.System.Controllers
             var result = await _employeeService.DeleteAsync(id);
             return result.IsSuccess ? Ok(result) : NotFound(result);
         }
+
+        [HttpGet("paginated")]
+        public async Task<IActionResult> GetPaginated(int pageNumber = 1, int pageSize = 10)
+        {
+            var result = await _employeeService.GetEmployeesPaginatedAsync(pageNumber, pageSize);
+            return Ok(result);
+        }
+
     }
 }

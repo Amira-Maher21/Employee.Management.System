@@ -2,34 +2,28 @@
 using Employee.Management.System.DTOS;
 using Employee.Management.System.mediator;
 using Employee.Management.System.Models;
-using Employee.Management.System.Repositories;
-using Employee.Management.System.Services.EmployeeServ;
+using Employee.Management.System.UnitOfWork;
 using Employee.Management.System.ViewModels;
 using MediatR;
 
 namespace Employee.Management.System.Services.LogHistoryServ
 {
-
     public class LogHistoryService : ILogHistoryService
     {
-        private readonly IRepository<LogHistory> _LogHistoryRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
 
-
-        public LogHistoryService(IRepository<LogHistory> LogHistoryRepository, IMapper mapper, IMediator mediator)
+        public LogHistoryService(IUnitOfWork unitOfWork, IMapper mapper, IMediator mediator)
         {
-            _LogHistoryRepository = LogHistoryRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _mediator= mediator;
-
+            _mediator = mediator;
         }
-
-
 
         public async Task<ResultViewModel<List<LogHistoryDto>>> GetAllLogsAsync()
         {
-            var logs = _LogHistoryRepository.GetAll().ToList();
+            var logs = _unitOfWork.LogHistories.GetAll().ToList();
 
             if (logs == null || !logs.Any())
             {
@@ -41,11 +35,5 @@ namespace Employee.Management.System.Services.LogHistoryServ
 
             return ResultViewModel<List<LogHistoryDto>>.Sucess(logsDto, "Log history retrieved successfully.");
         }
-
-
-
-
-
     }
-
 }
